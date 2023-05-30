@@ -15,3 +15,24 @@ Gaps in the time series can be a result of the model not receiving events at cer
 In the same sliding window, if a second spike is smaller than the first one, the computed score for the smaller spike is probably not significant enough compared to the score for the first spike within the confidence level specified. You can try decreasing the model's confidence level to detect such anomalies. However, if you start to get too many alerts, you can use a higher confidence interval.
 
 The following example query assumes a uniform input rate of one event per second in a 2-minute sliding window with a history of 120 events. The final SELECT statement extracts and outputs the score and anomaly status with a confidence level of 95%.
+
+```
+WITH AnomalyDetectionStep AS
+(
+    SELECT
+        EVENTENQUEUEDUTCTIME AS time,
+        CAST(temperature AS float) AS temp,
+        AnomalyDetection_SpikeAndDip(CAST(temperature AS float), 95, 120, 'spikesanddips')
+            OVER(LIMIT DURATION(second, 120)) AS SpikeAndDipScores
+    FROM input
+)
+SELECT
+    time,
+    temp,
+    CAST(GetRecordPropertyValue(SpikeAndDipScores, 'Score') AS float) AS
+    SpikeAndDipScore,
+    CAST(GetRecordPropertyValue(SpikeAndDipScores, 'IsAnomaly') AS bigint) AS
+    IsSpikeAndDipAnomaly
+INTO output
+FROM AnomalyDetectionStep
+```
