@@ -16,6 +16,8 @@ In the same sliding window, if a second spike is smaller than the first one, the
 
 The following example query assumes a uniform input rate of one event per second in a 2-minute sliding window with a history of 120 events. The final SELECT statement extracts and outputs the score and anomaly status with a confidence level of 95%.
 
+#### sample code
+
 ```
 WITH AnomalyDetectionStep AS
 (
@@ -33,6 +35,34 @@ SELECT
     SpikeAndDipScore,
     CAST(GetRecordPropertyValue(SpikeAndDipScores, 'IsAnomaly') AS bigint) AS
     IsSpikeAndDipAnomaly
+INTO output
+FROM AnomalyDetectionStep
+```
+### Change Points
+Persistent anomalies in a time series event stream are changes in the distribution of values in the event stream, like level changes and trends. In Stream Analytics, such anomalies are detected using the Machine Learning based AnomalyDetection_ChangePoint operator.
+
+Persistent changes last much longer than spikes and dips and could indicate catastrophic event(s). Persistent changes aren't usually visible to the naked eye, but can be detected with the AnomalyDetection_ChangePoint operator.
+
+#### Example Code
+The following example query assumes a uniform input rate of one event per second in a 20-minute sliding window with a history size of 1200 events. The final SELECT statement extracts and outputs the score and anomaly status with a confidence level of 80%.
+
+```
+WITH AnomalyDetectionStep AS
+(
+    SELECT
+        EVENTENQUEUEDUTCTIME AS time,
+        CAST(temperature AS float) AS temp,
+        AnomalyDetection_ChangePoint(CAST(temperature AS float), 80, 1200) 
+        OVER(LIMIT DURATION(minute, 20)) AS ChangePointScores
+    FROM input
+)
+SELECT
+    time,
+    temp,
+    CAST(GetRecordPropertyValue(ChangePointScores, 'Score') AS float) AS
+    ChangePointScore,
+    CAST(GetRecordPropertyValue(ChangePointScores, 'IsAnomaly') AS bigint) AS
+    IsChangePointAnomaly
 INTO output
 FROM AnomalyDetectionStep
 ```
