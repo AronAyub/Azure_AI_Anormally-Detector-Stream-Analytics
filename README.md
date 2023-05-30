@@ -66,3 +66,11 @@ SELECT
 INTO output
 FROM AnomalyDetectionStep
 ```
+### Relationship
+The history size, window duration, and total event load are related in the following way:
+
+windowDuration (in ms) = 1000 * historySize / (total input events per second / Input Partition Count)
+
+When partitioning the function by deviceId, add "PARTITION BY deviceId" to the anomaly detection function call.
+
+## Sample IoT Project for Anormally detection.
